@@ -1,0 +1,39 @@
+# Binaries
+/bin/
+/cmd/**/main
+
+# Build outputs
+*.exe
+*.out
+*.test
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# IDE/Editor specific
+.vscode/
+.idea/
+*.swp
+
+# Go modules
+/go.sum
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Dependency folders (if any vendoring used)
+vendor/
+
+# Test coverage
+coverage.out
+
+# PostgreSQL dump files
+*.sql
+
+# Temporary or generated files
+tmp/
