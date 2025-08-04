@@ -25,8 +25,9 @@ func main() {
 	router := http.NewServeMux()
 
 	router.HandleFunc("GET /api", handlers.Welcome)
-	router.HandleFunc("POST /api/user", handlers.RegisterUser)
+	router.HandleFunc("POST /api/user/register", handlers.RegisterUser)
 	router.HandleFunc("GET /api/users", handlers.GetUsers)
+	router.HandleFunc("POST /api/user/login", handlers.LoginUser)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

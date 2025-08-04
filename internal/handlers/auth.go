@@ -7,6 +7,7 @@ import (
 
 	"github.com/Anupam2807/go-auth-service/internal/db"
 	"github.com/Anupam2807/go-auth-service/internal/types"
+	"github.com/Anupam2807/go-auth-service/internal/utils"
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -105,4 +106,58 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 		"count": len(users),
 	}
 	json.NewEncoder(w).Encode(response)
+}
+
+func LoginUser(w http.ResponseWriter, r *http.Request) {
+
+	var input types.LoginInput
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		log.Println(err)
+		return
+	}
+	err = validate.Struct(input)
+	if err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		http.Error(w, validationErrors.Error(), http.StatusBadRequest)
+	}
+
+	var dbUser types.User
+	query := `SELECT id, email, password, role, provider FROM users WHERE email=$1`
+	err = db.DB.QueryRow(query, input.Email).Scan(
+		&dbUser.ID,
+		&dbUser.Email,
+		&dbUser.Password,
+		&dbUser.Role,
+		&dbUser.Provider,
+	)
+	if err != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(input.Password))
+	if err != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	accessToken, refreshToken, err := utils.GenerateTokens(int(dbUser.ID), dbUser.Email)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message":       "Login successful",
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"user": map[string]interface{}{
+			"id":       dbUser.ID,
+			"email":    dbUser.Email,
+			"role":     dbUser.Role,
+			"provider": dbUser.Provider,
+		},
+	})
 }
