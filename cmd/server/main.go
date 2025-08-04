@@ -26,6 +26,7 @@ func main() {
 
 	router.HandleFunc("GET /api", handlers.Welcome)
 	router.HandleFunc("POST /api/user", handlers.RegisterUser)
+	router.HandleFunc("GET /api/users", handlers.GetUsers)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

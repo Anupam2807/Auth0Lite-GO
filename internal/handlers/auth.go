@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/Anupam2807/go-auth-service/internal/db"
@@ -53,10 +54,14 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user.Password = string(hashedPassword)
-	query := `INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id`
-	err = db.DB.QueryRow(query, user.Email, user.Password, user.Role).Scan(&user.ID)
+	user.Provider = `email`
+	query := `INSERT INTO users (email, password, role,provider) VALUES ($1, $2, $3,$4) RETURNING id`
+	err = db.DB.QueryRow(query, user.Email, user.Password, user.Role, user.Provider).Scan(&user.ID)
 	if err != nil {
 		http.Error(w, "Error Saving User", http.StatusBadRequest)
+		log.Println("error:", err)
+		return
+
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -64,4 +69,40 @@ func RegisterUser(w http.ResponseWriter, r *http.Request) {
 		"message": "User Created Successfully",
 		"userId":  user.ID,
 	})
+}
+
+func GetUsers(w http.ResponseWriter, r *http.Request) {
+	rows, err := db.DB.Query("SELECT id, email, provider, role FROM users")
+	if err != nil {
+		http.Error(w, "Failed to query users", http.StatusInternalServerError)
+		log.Println("DB error:", err)
+		return
+	}
+	defer rows.Close()
+
+	var users []types.User
+
+	for rows.Next() {
+		var user types.User
+		err := rows.Scan(&user.ID, &user.Email, &user.Provider, &user.Role)
+		if err != nil {
+			http.Error(w, "Failed to scan user", http.StatusInternalServerError)
+			log.Println("Scan error:", err)
+			return
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Error reading rows", http.StatusInternalServerError)
+		log.Println("Row error:", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"users": users,
+		"count": len(users),
+	}
+	json.NewEncoder(w).Encode(response)
 }
