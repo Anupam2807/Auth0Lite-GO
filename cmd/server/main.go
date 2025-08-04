@@ -9,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/Anupam2807/go-auth-service/internal/db"
+	"github.com/Anupam2807/go-auth-service/internal/handlers"
 )
 
 func main() {
@@ -21,11 +22,15 @@ func main() {
 
 	db.Connect()
 
+	router := http.NewServeMux()
+
+	router.HandleFunc("GET /api", handlers.Welcome)
+	router.HandleFunc("POST /api/user", handlers.RegisterUser)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
 	log.Println("Server starting on port", port)
-	http.ListenAndServe(":"+port, nil)
+	http.ListenAndServe(":"+port, router)
 }
